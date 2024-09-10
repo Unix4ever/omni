@@ -309,6 +309,7 @@ func handleMachineSet(data *audit.Data, res *omni.MachineSet, emptyOwner bool) e
 	data.MachineSet.ID = res.Metadata().ID()
 	data.MachineSet.UpdateStrategy = res.TypedSpec().Value.GetUpdateStrategy().String()
 	data.MachineSet.MachineClass = res.TypedSpec().Value.GetMachineClass()
+	data.MachineSet.MachineRequestSet = res.TypedSpec().Value.GetMachineRequestSet()
 	data.MachineSet.BootstrapSpec = res.TypedSpec().Value.GetBootstrapSpec()
 	data.MachineSet.DeleteStrategy = res.TypedSpec().Value.GetDeleteStrategy().String()
 	data.MachineSet.UpdateStrategyConfig = res.TypedSpec().Value.GetUpdateStrategyConfig()

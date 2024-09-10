@@ -1017,6 +1017,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource: omni.NewBackupData(uuid.New().String()),
 			},
+			{
+				resource: omni.NewMachineRequestSetPressure(resources.DefaultNamespace, uuid.NewString()),
+			},
 		}...)
 
 		// custom resources

@@ -849,7 +849,7 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 
 			switch {
 			case machineClass != nil:
-				r.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+				r.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: uint32(machineCount),
 					Name:         machineClass.Metadata().ID(),
 				}

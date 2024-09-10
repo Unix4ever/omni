@@ -14,7 +14,7 @@ import {
   MachineSetNodeSpec,
   MachineSetSpec,
   MachineSetSpecBootstrapSpec,
-  MachineSetSpecMachineClassAllocationType,
+  MachineSetSpecMachineAllocationType,
   MachineSetSpecUpdateStrategy,
   MachineSetSpecUpdateStrategyConfig
 } from "@/api/omni/specs/omni.pb"
@@ -89,6 +89,10 @@ export interface MachineSet {
   role: string
   color: string
   machineClass?: {
+    name: string
+    size: number | "unlimited"
+  }
+  machineRequestSet?: {
     name: string
     size: number | "unlimited"
   }
@@ -243,7 +247,11 @@ export class State {
         return false;
       }
 
-      const machineSetSize = (ms.machineClass?.size ?? NaN) as number;
+      if (ms.machineRequestSet?.size === "unlimited") {
+        return false;
+      }
+
+      const machineSetSize = (ms.machineClass?.size ?? ms.machineRequestSet?.size ?? NaN) as number;
 
       nodes += !isNaN(machineSetSize) ? machineSetSize : Object.keys(ms.machines).length;
     }
@@ -350,6 +358,14 @@ export class State {
         return -1;
       }
 
+      if (a.machineRequestSet && !b.machineRequestSet) {
+        return 1;
+      }
+
+      if (b.machineRequestSet && !a.machineRequestSet) {
+        return -1;
+      }
+
       return 0;
     });
 
@@ -390,6 +406,9 @@ export class State {
         }
       }
 
+      ms.spec.machine_class = undefined
+      ms.spec.machine_request_set = undefined
+
       if (machineSet.machineClass) {
         ms.spec.machine_class = {
           name: machineSet.machineClass.name,
@@ -397,7 +416,7 @@ export class State {
 
         switch (machineSet.machineClass.size) {
         case unlimited:
-          ms.spec.machine_class.allocation_type = MachineSetSpecMachineClassAllocationType.Unlimited;
+          ms.spec.machine_class.allocation_type = MachineSetSpecMachineAllocationType.Unlimited;
 
           break;
         default:
@@ -405,8 +424,21 @@ export class State {
 
           break;
         }
-      } else {
-        ms.spec.machine_class = undefined;
+      } else if (machineSet.machineRequestSet) {
+        ms.spec.machine_request_set = {
+          name: machineSet.machineRequestSet.name,
+        }
+
+        switch (machineSet.machineRequestSet.size) {
+        case unlimited:
+          ms.spec.machine_request_set.allocation_type = MachineSetSpecMachineAllocationType.Unlimited;
+
+          break;
+        default:
+          ms.spec.machine_request_set.machine_count = machineSet.machineRequestSet.size as number;
+
+          break;
+        }
       }
 
       for (const id in machineSet.machines) {
@@ -443,7 +475,7 @@ export class State {
           })
         }
 
-        if (!machineSet.machineClass)
+        if (!machineSet.machineClass && !machineSet.machineRequestSet)
           resources.push(msn);
 
         resources.push(...this.getPatches(machineSet.machines[id].patches, {
@@ -562,6 +594,12 @@ export class State {
         }
 
         count += ms.machineClass.size as number;
+      } else if (ms.machineRequestSet) {
+        if (ms.machineRequestSet.size === "unlimited") {
+          return `All From Machine Request Set "${ms.machineRequestSet.name}"`;
+        }
+
+        count += ms.machineRequestSet.size as number;
       } else {
         count += Object.keys(ms.machines).length;
       }
@@ -694,7 +732,14 @@ export const populateExisting = async (clusterName: string) => {
     if (ms.spec.machine_class) {
       machineSet.machineClass = {
         name: ms.spec.machine_class.name!,
-        size: ms.spec.machine_class.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited ? "unlimited" : ms.spec.machine_class.machine_count ?? 0,
+        size: ms.spec.machine_class.allocation_type === MachineSetSpecMachineAllocationType.Unlimited ? "unlimited" : ms.spec.machine_class.machine_count ?? 0,
+      }
+    }
+
+    if (ms.spec.machine_request_set) {
+      machineSet.machineRequestSet = {
+        name: ms.spec.machine_request_set.name!,
+        size: ms.spec.machine_request_set.allocation_type === MachineSetSpecMachineAllocationType.Unlimited ? "unlimited" : ms.spec.machine_request_set.machine_count ?? 0,
       }
     }
 

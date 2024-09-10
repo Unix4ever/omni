@@ -118,6 +118,31 @@ spec:
   bootstrapspec: null
 ---
 
+################################ Worker MachineSet - additional, using request set, unlimited allocation
+metadata:
+  namespace: default
+  type: MachineSets.omni.sidero.dev
+  id: export-test-w3c03ce
+  version: 4
+  owner:
+  phase: running
+  created: 2023-12-07T13:38:09Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/role-worker:
+  finalizers:
+    - MachineSetController
+    - MachineSetStatusController
+spec:
+  updatestrategy: 1
+  machinerequestset:
+    name: mr1
+    machinecount: 10
+    allocationtype: 0
+  bootstrapspec: null
+---
+
 
 
 ################################ Worker MachineSet - additional, using machine class, static allocation

@@ -34,7 +34,9 @@ type MachineSet struct {
 	// MachineSet machines.
 	Machines MachineIDList `yaml:"machines,omitempty"`
 
-	MachineClass *MachineClassConfig `yaml:"machineClass,omitempty"`
+	MachineClass *MachineAllocationConfig `yaml:"machineClass,omitempty"`
+
+	MachineRequestSet *MachineAllocationConfig `yaml:"machineRequestSet,omitempty"`
 
 	// UpdateStrategy defines the update strategy for the machine set.
 	UpdateStrategy *UpdateStrategyConfig `yaml:"updateStrategy,omitempty"`
@@ -56,19 +58,19 @@ type BootstrapSpec struct {
 	Snapshot string `yaml:"snapshot"`
 }
 
-// MachineClassConfig defines the model for setting the machine class based machine selector in the machine set.
-type MachineClassConfig struct {
-	// Name defines used machine class name.
+// MachineAllocationConfig defines the model for setting the machine class/machine request set based machine selector in the machine set.
+type MachineAllocationConfig struct {
+	// Name defines used machine class/machine request set name.
 	Name string `yaml:"name"`
 
-	// Size sets the number of machines to be pulled from the machine class.
+	// Size sets the number of machines to be pulled from the machine class/machine request set.
 	Size Size `yaml:"size"`
 }
 
 // Size extends protobuf generated allocation type enum to parse string constants.
 type Size struct {
 	Value          uint32
-	AllocationType specs.MachineSetSpec_MachineClass_AllocationType
+	AllocationType specs.MachineSetSpec_MachineAllocation_Type
 }
 
 // UnmarshalYAML implements yaml.Unmarshaler.
@@ -84,10 +86,10 @@ func (c *Size) UnmarshalYAML(unmarshal func(any) error) error {
 		value = "Unlimited"
 	}
 
-	v, ok := specs.MachineSetSpec_MachineClass_AllocationType_value[value]
+	v, ok := specs.MachineSetSpec_MachineAllocation_Type_value[value]
 
 	if !ok {
-		c.AllocationType = specs.MachineSetSpec_MachineClass_Static
+		c.AllocationType = specs.MachineSetSpec_MachineAllocation_Static
 
 		count, err := strconv.ParseUint(value, 10, 32)
 		if err != nil {
@@ -97,15 +99,15 @@ func (c *Size) UnmarshalYAML(unmarshal func(any) error) error {
 		c.Value = uint32(count)
 	}
 
-	c.AllocationType = specs.MachineSetSpec_MachineClass_AllocationType(v)
+	c.AllocationType = specs.MachineSetSpec_MachineAllocation_Type(v)
 
 	return nil
 }
 
 // MarshalYAML implements yaml.Marshaler.
 func (c Size) MarshalYAML() (any, error) {
-	if c.AllocationType != specs.MachineSetSpec_MachineClass_Static {
-		return specs.MachineSetSpec_MachineClass_AllocationType_name[int32(c.AllocationType)], nil
+	if c.AllocationType != specs.MachineSetSpec_MachineAllocation_Static {
+		return specs.MachineSetSpec_MachineAllocation_Type_name[int32(c.AllocationType)], nil
 	}
 
 	return c.Value, nil
@@ -161,6 +163,14 @@ func (machineset *MachineSet) Validate() error {
 		multiErr = multierror.Append(multiErr, fmt.Errorf("machine set can not have both machines and machine class defined"))
 	}
 
+	if len(machineset.Machines) > 0 && machineset.MachineRequestSet != nil {
+		multiErr = multierror.Append(multiErr, fmt.Errorf("machine set can not have both machines and machine request set defined"))
+	}
+
+	if machineset.MachineRequestSet != nil && machineset.MachineClass != nil {
+		multiErr = multierror.Append(multiErr, fmt.Errorf("machine set can not have both machine calss and machine request set defined"))
+	}
+
 	return multiErr
 }
 
@@ -213,13 +223,20 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 		}
 	}
 
-	if machineset.MachineClass != nil {
-		machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	switch {
+	case machineset.MachineClass != nil:
+		machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineAllocation{
 			Name:           machineset.MachineClass.Name,
 			MachineCount:   machineset.MachineClass.Size.Value,
 			AllocationType: machineset.MachineClass.Size.AllocationType,
 		}
-	} else {
+	case machineset.MachineRequestSet != nil:
+		machineSet.TypedSpec().Value.MachineRequestSet = &specs.MachineSetSpec_MachineAllocation{
+			Name:           machineset.MachineRequestSet.Name,
+			MachineCount:   machineset.MachineRequestSet.Size.Value,
+			AllocationType: machineset.MachineRequestSet.Size.AllocationType,
+		}
+	default:
 		for _, machineID := range machineset.Machines {
 			machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, string(machineID), machineSet)
 			descriptors := ctx.MachineDescriptors[machineID]

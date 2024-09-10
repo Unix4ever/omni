@@ -232,19 +232,29 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 	}
 
 	var (
-		machineIDs         models.MachineIDList
-		machineClassConfig *models.MachineClassConfig
+		machineIDs        models.MachineIDList
+		machineClass      *models.MachineAllocationConfig
+		machineRequestSet *models.MachineAllocationConfig
 	)
 
-	if spec.GetMachineClass() != nil {
-		machineClassConfig = &models.MachineClassConfig{
+	switch {
+	case spec.GetMachineClass() != nil:
+		machineClass = &models.MachineAllocationConfig{
 			Name: spec.GetMachineClass().GetName(),
 			Size: models.Size{
 				Value:          spec.GetMachineClass().GetMachineCount(),
 				AllocationType: spec.GetMachineClass().GetAllocationType(),
 			},
 		}
-	} else {
+	case spec.GetMachineRequestSet() != nil:
+		machineRequestSet = &models.MachineAllocationConfig{
+			Name: spec.GetMachineRequestSet().GetName(),
+			Size: models.Size{
+				Value:          spec.GetMachineRequestSet().GetMachineCount(),
+				AllocationType: spec.GetMachineRequestSet().GetAllocationType(),
+			},
+		}
+	default:
 		machineIDs = xslices.Map(nodes, func(node *omni.MachineSetNode) models.MachineID {
 			return models.MachineID(node.Metadata().ID())
 		})
@@ -303,14 +313,15 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 		Meta: models.Meta{
 			Kind: kind,
 		},
-		Name:           name,
-		Descriptors:    getUserDescriptors(machineSet),
-		BootstrapSpec:  bootstrapSpec,
-		Machines:       machineIDs,
-		MachineClass:   machineClassConfig,
-		Patches:        patchModels,
-		UpdateStrategy: updateStrategyConfig,
-		DeleteStrategy: deleteStrategyConfig,
+		Name:              name,
+		Descriptors:       getUserDescriptors(machineSet),
+		BootstrapSpec:     bootstrapSpec,
+		Machines:          machineIDs,
+		MachineClass:      machineClass,
+		MachineRequestSet: machineRequestSet,
+		Patches:           patchModels,
+		UpdateStrategy:    updateStrategyConfig,
+		DeleteStrategy:    deleteStrategyConfig,
 	}, nil
 }
 
@@ -409,8 +420,8 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 			return clusterResources{}, fmt.Errorf("unexpected machine set label %q", machineSetLabel)
 		}
 
-		// skip the node if its machine set picks machines from a machine class
-		if machineSet.TypedSpec().Value.GetMachineClass() != nil {
+		// skip the node if its machine set picks machines automatically
+		if machineSet.TypedSpec().Value.GetMachineClass() != nil || machineSet.TypedSpec().Value.GetMachineRequestSet() != nil {
 			continue
 		}
 

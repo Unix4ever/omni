@@ -107,6 +107,12 @@ patches:
             mtu: 1217
 ---
 kind: Workers
+name: w3c03ce
+machineRequestSet:
+  name: mr1
+  size: 10
+---
+kind: Workers
 name: w3c03cf
 machineClass:
   name: mc2

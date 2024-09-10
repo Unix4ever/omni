@@ -90,7 +90,8 @@ type Cluster struct {
 // MachineSet struct contains information about the machine set.
 type MachineSet struct {
 	Labels               map[string]string                          `json:"labels,omitempty"`
-	MachineClass         *specs.MachineSetSpec_MachineClass         `json:"machine_class,omitempty"`
+	MachineClass         *specs.MachineSetSpec_MachineAllocation    `json:"machine_class,omitempty"`
+	MachineRequestSet    *specs.MachineSetSpec_MachineAllocation    `json:"machine_request_set,omitempty"`
 	BootstrapSpec        *specs.MachineSetSpec_BootstrapSpec        `json:"bootstrap_spec,omitempty"`
 	UpdateStrategyConfig *specs.MachineSetSpec_UpdateStrategyConfig `json:"update_strategy_config,omitempty"`
 	DeleteStrategyConfig *specs.MachineSetSpec_UpdateStrategyConfig `json:"delete_strategy_config,omitempty"`

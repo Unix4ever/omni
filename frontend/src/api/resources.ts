@@ -125,6 +125,7 @@ export const MachineExtensionsType = "MachineExtensions.omni.sidero.dev";
 export const MachineExtensionsStatusType = "MachineExtensionsStatuses.omni.sidero.dev";
 export const MachineLabelsType = "MachineLabels.omni.sidero.dev";
 export const MachineRequestSetType = "MachineRequestSets.omni.sidero.dev";
+export const MachineRequestSetPressureType = "MachineRequestSetPressurees.omni.sidero.dev";
 export const MachineRequestSetStatusType = "MachineRequestSetStatuses.omni.sidero.dev";
 export const ControlPlanesIDSuffix = "control-planes";
 export const DefaultWorkersIDSuffix = "workers";

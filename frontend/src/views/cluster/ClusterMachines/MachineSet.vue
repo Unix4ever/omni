@@ -26,7 +26,7 @@ included in the LICENSE file.
                 <t-input :min="0" class="h-6" compact type="number" v-model="machineCount" @keydown.enter="() => updateMachineCount()"/>
               </div>
               <icon-button icon="check" @click="() => updateMachineCount()"/>
-              <t-button type="subtle" @click="() => updateMachineCount(MachineSetSpecMachineClassAllocationType.Unlimited)">
+              <t-button type="subtle" @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)">
                 Use All
               </t-button>
             </div>
@@ -55,7 +55,7 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { Resource } from "@/api/grpc";
-import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineClassAllocationType } from "@/api/omni/specs/omni.pb";
+import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineAllocationType } from "@/api/omni/specs/omni.pb";
 import { ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet } from "@/api/resources";
 import { computed, ref, toRefs } from "vue";
 import { useRouter } from "vue-router";
@@ -152,7 +152,7 @@ const canRemoveMachineSet = computed(() => {
   return !deleteProtected.has(machineSet.value.metadata.id!)
 });
 
-const updateMachineCount = async (allocationType: MachineSetSpecMachineClassAllocationType = MachineSetSpecMachineClassAllocationType.Static) => {
+const updateMachineCount = async (allocationType: MachineSetSpecMachineAllocationType = MachineSetSpecMachineAllocationType.Static) => {
   scaling.value = true;
 
   try {
@@ -167,7 +167,7 @@ const updateMachineCount = async (allocationType: MachineSetSpecMachineClassAllo
 };
 
 const requestedMachines = computed(() => {
-  if (machineSet.value.spec.machine_class?.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited) {
+  if (machineSet.value.spec.machine_class?.allocation_type === MachineSetSpecMachineAllocationType.Unlimited) {
     return "∞";
   }
 
@@ -175,7 +175,7 @@ const requestedMachines = computed(() => {
 })
 
 const machineClassMachineCount = computed(() => {
-  if (machineSet.value.spec?.machine_class?.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited) {
+  if (machineSet.value.spec?.machine_class?.allocation_type === MachineSetSpecMachineAllocationType.Unlimited) {
     return "All Machines";
   }
 

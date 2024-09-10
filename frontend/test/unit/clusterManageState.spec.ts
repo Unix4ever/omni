@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 
 import { Resource } from "../../src/api/grpc";
-import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineClassAllocationType, MachineSetSpecUpdateStrategy } from "../../src/api/omni/specs/omni.pb";
+import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineAllocationType, MachineSetSpecUpdateStrategy } from "../../src/api/omni/specs/omni.pb";
 import { ClusterType, ConfigPatchType, DefaultNamespace, LabelCluster, LabelClusterMachine, LabelControlPlaneRole, LabelMachineSet, LabelWorkerRole, MachineSetNodeType, MachineSetType } from "../../src/api/resources";
 import { Cluster, initState, MachineSet, PatchID, state } from "../../src/states/cluster-management";
 
@@ -173,7 +173,7 @@ describe("cluster-management-state", () => {
               update_strategy: MachineSetSpecUpdateStrategy.Rolling,
               machine_class: {
                 name: "mc1",
-                allocation_type: MachineSetSpecMachineClassAllocationType.Unlimited,
+                allocation_type: MachineSetSpecMachineAllocationType.Unlimited,
               }
             }
           },

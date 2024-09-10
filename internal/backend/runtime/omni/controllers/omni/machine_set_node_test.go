@@ -145,7 +145,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 
 	machineClass := newMachineClass(fmt.Sprintf("%s==amd64", omni.MachineStatusLabelArch), "userlabel=value")
 
-	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineAllocation{
 		Name:         machineClass.Metadata().ID(),
 		MachineCount: 1,
 	}
@@ -247,10 +247,10 @@ func (suite *MachineSetNodeSuite) TestRequiredExtraMachines() {
 	machineClass.TypedSpec().Value.MatchLabels = []string{"foo=bar"}
 	suite.Require().NoError(suite.state.Create(ctx, machineClass))
 
-	machineSetMachineClassSpec := func() *specs.MachineSetSpec_MachineClass {
-		return &specs.MachineSetSpec_MachineClass{
+	machineSetMachineClassSpec := func() *specs.MachineSetSpec_MachineAllocation {
+		return &specs.MachineSetSpec_MachineAllocation{
 			Name:           machineClass.Metadata().ID(),
-			AllocationType: specs.MachineSetSpec_MachineClass_Static,
+			AllocationType: specs.MachineSetSpec_MachineAllocation_Static,
 			MachineCount:   3,
 		}
 	}
@@ -328,7 +328,7 @@ func (suite *MachineSetNodeSuite) TestRequiredExtraMachines() {
 
 	// switch machine allocation mode to unlimited
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
-		ms.TypedSpec().Value.MachineClass.AllocationType = specs.MachineSetSpec_MachineClass_Unlimited
+		ms.TypedSpec().Value.MachineClass.AllocationType = specs.MachineSetSpec_MachineAllocation_Unlimited
 
 		return nil
 	})

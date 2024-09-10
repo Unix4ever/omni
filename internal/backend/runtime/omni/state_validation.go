@@ -269,7 +269,7 @@ func roleValidationOptions() []validated.StateOption {
 
 // machineSetValidationOptions returns the validation options for the machine set resource.
 //
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Factory) []validated.StateOption {
 	validate := func(ctx context.Context, oldRes *omni.MachineSet, res *omni.MachineSet) error {
 		// label validations
@@ -313,11 +313,15 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 
 		spec := res.TypedSpec().Value
 		if spec.MachineClass != nil {
+			if spec.MachineRequestSet != nil {
+				return errors.New("machine set already uses machine request set")
+			}
+
 			if spec.MachineClass.Name == "" {
 				return errors.New("machine set class name is not set")
 			}
 
-			if spec.MachineClass.MachineCount != 0 && spec.MachineClass.AllocationType != specs.MachineSetSpec_MachineClass_Static {
+			if spec.MachineClass.MachineCount != 0 && spec.MachineClass.AllocationType != specs.MachineSetSpec_MachineAllocation_Static {
 				return errors.New("machine count can be set only if static allocation type is used")
 			}
 
@@ -335,13 +339,41 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			}
 		}
 
+		if spec.MachineRequestSet != nil {
+			if spec.MachineClass != nil {
+				return errors.New("machine set already uses machine classes")
+			}
+
+			if spec.MachineRequestSet.Name == "" {
+				return errors.New("machine request set name is not set")
+			}
+
+			if spec.MachineRequestSet.MachineCount != 0 && spec.MachineRequestSet.AllocationType != specs.MachineSetSpec_MachineAllocation_Static {
+				return errors.New("machine count can be set only if static allocation type is used")
+			}
+
+			// if change machine class, verify the specified class name exists.
+			changed := oldRes == nil || oldRes.TypedSpec().Value.MachineRequestSet != nil && oldRes.TypedSpec().Value.MachineRequestSet.Name != spec.MachineRequestSet.Name
+			if changed {
+				_, err := safe.ReaderGetByID[*omni.MachineRequestSet](ctx, st, spec.MachineRequestSet.Name)
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return fmt.Errorf("machine request set with name %q doesn't exist", spec.MachineRequestSet.Name)
+					}
+
+					return err
+				}
+			}
+		}
+
 		if oldRes != nil {
 			// ensure that the machine class type doesn't change from manually selected machines to the machine class
 			oldSpec := oldRes.TypedSpec().Value
 
 			mgmtModeSwitchedToMachineClass := oldSpec.MachineClass == nil && spec.MachineClass != nil
 			mgmtModeSwitchedToManual := oldSpec.MachineClass != nil && spec.MachineClass == nil
-			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual
+			mgmtModeSwitchedToMachineRequestSet := oldSpec.MachineRequestSet != nil && spec.MachineRequestSet == nil
+			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual || mgmtModeSwitchedToMachineRequestSet
 
 			if mgmtModeChanged {
 				machineSetNodeList, err := safe.StateListAll[*omni.MachineSetNode](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, res.Metadata().ID())))
@@ -353,9 +385,9 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 				if machineSetNodeList.Len() > 0 {
 					switch {
 					case mgmtModeSwitchedToMachineClass:
-						return errors.New("machine set is not empty and is using manual nodes management, updating to machine class mode is not allowed")
+						return errors.New("machine set is not empty and is using manual nodes management, updating to automated is not allowed")
 					case mgmtModeSwitchedToManual:
-						return errors.New("machine set is not empty and is using machine class based node management, updating to manual mode is not allowed")
+						return errors.New("machine set is not empty and is using automated node management, updating to manual mode is not allowed")
 					}
 				}
 			}

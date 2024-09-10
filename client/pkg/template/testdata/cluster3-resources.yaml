@@ -53,6 +53,7 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machinerequestset: null
 ---
 metadata:
     namespace: default
@@ -88,6 +89,7 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machinerequestset: null
 ---
 metadata:
     namespace: default
@@ -159,6 +161,7 @@ spec:
     deletestrategyconfig:
         rolling:
             maxparallelism: 5
+    machinerequestset: null
 ---
 metadata:
     namespace: default
@@ -235,6 +238,7 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machinerequestset: null
 ---
 metadata:
     namespace: default
@@ -273,6 +277,7 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machinerequestset: null
 ---
 metadata:
     namespace: default
@@ -296,3 +301,28 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machinerequestset: null
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: my-first-cluster-additional-5
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: my-first-cluster
+        omni.sidero.dev/role-worker:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec: null
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+    machinerequestset:
+        name: mr1
+        machinecount: 1
+        allocationtype: 0
