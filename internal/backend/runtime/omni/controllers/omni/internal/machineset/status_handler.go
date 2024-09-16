@@ -64,11 +64,15 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 	spec.MachineClass = nil
 	spec.MachineRequestSet = nil
 
+	machineSetStatus.Metadata().Labels().Delete(omni.LabelMachineRequestSet)
+
 	switch {
 	case machineSet.TypedSpec().Value.MachineClass != nil:
 		spec.MachineClass = machineAllocation
 	case machineSet.TypedSpec().Value.MachineRequestSet != nil:
 		spec.MachineRequestSet = machineAllocation
+
+		machineSetStatus.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineAllocation.Name)
 	}
 
 	switch {

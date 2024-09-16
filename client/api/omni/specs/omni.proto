@@ -1165,6 +1165,23 @@ message MachineRequestSetStatusSpec {}
 
 // MachineClassStatusSpec describes an Omni MachineRequestSetPressure resource spec.
 message MachineRequestSetPressureSpec {
-  // RequiredAdditionalMachines is the number of additional machines required to satisfy the machine class.
-  uint32 required_additional_machines = 1;
+  // RequiredMachines is the number of machines required by all machine sets which are using the request set.
+  uint32 required_machines = 1;
+}
+
+// MachineProvisionSpec describes the rules for creating and scaling the machine request set.
+message MachineProvisionSpec {
+  string provider_id = 1;
+
+  string talos_version = 2;
+
+  Overlay overlay = 3;
+  repeated string extensions = 4;
+  repeated string kernel_args = 5;
+  repeated MetaValue meta_values = 6;
+
+  // IdleMachineTeardownTimeout removes the unused machines after this timeout.
+  google.protobuf.Duration idle_machine_teardown_timeout = 7;
+  // IdleMachineCount keeps the provisioned machines in the maintenance mode.
+  uint32 idle_machine_count = 8;
 }

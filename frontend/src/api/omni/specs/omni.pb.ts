@@ -746,5 +746,16 @@ export type MachineRequestSetStatusSpec = {
 }
 
 export type MachineRequestSetPressureSpec = {
-  required_additional_machines?: number
+  required_machines?: number
+}
+
+export type MachineProvisionSpec = {
+  provider_id?: string
+  talos_version?: string
+  overlay?: Overlay
+  extensions?: string[]
+  kernel_args?: string[]
+  meta_values?: MetaValue[]
+  idle_machine_teardown_timeout?: GoogleProtobufDuration.Duration
+  idle_machine_count?: number
 }

@@ -38,22 +38,26 @@ func NewMachineRequestSetPressureController() *MachineRequestSetPressureControll
 				return omni.NewMachineRequestSet(res.Metadata().Namespace(), res.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, mrs *omni.MachineRequestSet, mrsp *omni.MachineRequestSetPressure) error {
-				msrmList, err := safe.ReaderListAll[*omni.MachineSetRequiredMachines](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, mrs.Metadata().ID())))
+				msrmList, err := safe.ReaderListAll[*omni.MachineSetStatus](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, mrs.Metadata().ID())))
 				if err != nil {
 					return err
 				}
 
 				total := uint32(0)
 
-				err = msrmList.ForEachErr(func(msrm *omni.MachineSetRequiredMachines) error {
-					if msrm.Metadata().Phase() == resource.PhaseTearingDown || mrs.Metadata().Phase() == resource.PhaseTearingDown {
-						return r.RemoveFinalizer(ctx, msrm.Metadata(), machineRequestSetPressureControllerName)
+				err = msrmList.ForEachErr(func(mss *omni.MachineSetStatus) error {
+					if mss.Metadata().Phase() == resource.PhaseTearingDown || mrs.Metadata().Phase() == resource.PhaseTearingDown {
+						return r.RemoveFinalizer(ctx, mss.Metadata(), machineRequestSetPressureControllerName)
 					}
 
-					total += msrm.TypedSpec().Value.RequiredAdditionalMachines
+					if mss.TypedSpec().Value.MachineRequestSet == nil {
+						return nil
+					}
 
-					if !msrm.Metadata().Finalizers().Has(machineRequestSetPressureControllerName) {
-						return r.AddFinalizer(ctx, msrm.Metadata(), machineRequestSetPressureControllerName)
+					total += mss.TypedSpec().Value.MachineRequestSet.MachineCount
+
+					if !mss.Metadata().Finalizers().Has(machineRequestSetPressureControllerName) {
+						return r.AddFinalizer(ctx, mss.Metadata(), machineRequestSetPressureControllerName)
 					}
 
 					return nil
@@ -62,13 +66,13 @@ func NewMachineRequestSetPressureController() *MachineRequestSetPressureControll
 					return err
 				}
 
-				mrsp.TypedSpec().Value.RequiredAdditionalMachines = total
+				mrsp.TypedSpec().Value.RequiredMachines = total
 
 				return nil
 			},
 		},
 		qtransform.WithExtraMappedInput(
-			mappers.MapExtractLabelValue[*omni.MachineSetRequiredMachines, *omni.MachineRequestSet](omni.LabelMachineRequestSet),
+			mappers.MapExtractLabelValue[*omni.MachineSetStatus, *omni.MachineRequestSet](omni.LabelMachineRequestSet),
 		),
 	)
 }
