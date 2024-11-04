@@ -274,13 +274,19 @@ func roleValidationOptions() []validated.StateOption {
 
 // machineSetValidationOptions returns the validation options for the machine set resource.
 //
-//nolint:gocognit,gocyclo,cyclop
-func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Factory) []validated.StateOption {
+//nolint:gocognit,gocyclo,cyclop,maintidx
+func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Factory, managedControlPlanesEnabled bool) []validated.StateOption {
 	validate := func(ctx context.Context, oldRes *omni.MachineSet, res *omni.MachineSet) error {
 		// label validations
 		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
 		if !ok {
 			return errors.New("cluster label is missing")
+		}
+
+		managed := res.TypedSpec().Value.Managed != nil && res.TypedSpec().Value.Managed.Enable
+
+		if !managedControlPlanesEnabled && managed {
+			return errors.New("managed control planes feature is not enabled")
 		}
 
 		if oldRes == nil {
@@ -294,11 +300,23 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			}
 		}
 
+		if oldRes != nil && (oldRes.TypedSpec().Value.Managed != nil && oldRes.TypedSpec().Value.Managed.Enable) != managed {
+			return fmt.Errorf("managed mode is immutable")
+		}
+
 		_, isControlPlane := res.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 		_, isWorker := res.Metadata().Labels().Get(omni.LabelWorkerRole)
 
 		if !isControlPlane && !isWorker {
 			return fmt.Errorf("machine set must have either %q or %q label", omni.LabelControlPlaneRole, omni.LabelWorkerRole)
+		}
+
+		if isWorker && managed {
+			return fmt.Errorf("managed mode is not allowed for workers")
+		}
+
+		if res.TypedSpec().Value.BootstrapSpec != nil && managed {
+			return fmt.Errorf("manually restoring managed control planes from the backup is not possible")
 		}
 
 		if isControlPlane && oldRes == nil { // creating a new control plane machine set
@@ -319,6 +337,10 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 		allocationConfig := omni.GetMachineAllocation(res)
 
 		if allocationConfig != nil {
+			if managed {
+				return errors.New("managed control planes do not allow setting allocation configs")
+			}
+
 			if allocationConfig.Name == "" {
 				return errors.New("machine allocation source name is not set")
 			}
@@ -336,29 +358,17 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			// if change machine class, verify the specified class name exists.
 			changed := oldRes == nil || oldAllocationConfig != nil && oldAllocationConfig.Name != allocationConfig.Name
 			if changed {
-				switch allocationConfig.Source {
-				case specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
-					_, err := st.Get(ctx, omni.NewMachineRequestSet(resources.DefaultNamespace, allocationConfig.Name).Metadata())
-					if err != nil {
-						if state.IsNotFoundError(err) {
-							return fmt.Errorf("machine request set with name %q doesn't exist", allocationConfig.Name)
-						}
-
-						return err
-					}
-				case specs.MachineSetSpec_MachineAllocation_MachineClass:
-					mc, err := safe.ReaderGetByID[*omni.MachineClass](ctx, st, allocationConfig.Name)
-					if err != nil {
-						if state.IsNotFoundError(err) {
-							return fmt.Errorf("machine class with name %q doesn't exist", allocationConfig.Name)
-						}
-
-						return err
+				mc, err := safe.ReaderGetByID[*omni.MachineClass](ctx, st, allocationConfig.Name)
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return fmt.Errorf("machine class with name %q doesn't exist", allocationConfig.Name)
 					}
 
-					if mc.TypedSpec().Value.AutoProvision != nil && allocationConfig.AllocationType == specs.MachineSetSpec_MachineAllocation_Unlimited {
-						return fmt.Errorf("machine class %q is using autoprovision, so unlimited machine set allocation is not supported", allocationConfig.Name)
-					}
+					return err
+				}
+
+				if mc.TypedSpec().Value.AutoProvision != nil && allocationConfig.AllocationType == specs.MachineSetSpec_MachineAllocation_Unlimited {
+					return fmt.Errorf("machine class %q is using autoprovision, so unlimited machine set allocation is not supported", allocationConfig.Name)
 				}
 			}
 		}
@@ -370,8 +380,7 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 
 			mgmtModeSwitchedToMachineClass := oldAllocationConfig == nil && newAllocationConfig != nil
 			mgmtModeSwitchedToManual := oldAllocationConfig != nil && newAllocationConfig == nil
-			mgmtModeSwitchedSource := oldAllocationConfig != nil && newAllocationConfig != nil && oldAllocationConfig.Source != newAllocationConfig.Source
-			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual || mgmtModeSwitchedSource
+			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual
 
 			if mgmtModeChanged {
 				machineSetNodeList, err := safe.StateListAll[*omni.MachineSetNode](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, res.Metadata().ID())))
@@ -382,8 +391,6 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 				// block management mode change only if there are nodes in the machine set
 				if machineSetNodeList.Len() > 0 {
 					switch {
-					case mgmtModeSwitchedSource:
-						return errors.New("machine set is not empty, updating source is not allowed")
 					case mgmtModeSwitchedToMachineClass:
 						return errors.New("machine set is not empty and is using manual nodes management, updating to machine class mode is not allowed")
 					case mgmtModeSwitchedToManual:
@@ -488,7 +495,7 @@ func machineClassValidationOptions(st state.State) []validated.StateOption {
 			var inUseBy []string
 
 			machineSets.ForEach(func(r *omni.MachineSet) {
-				if alloc := omni.GetMachineAllocation(r); alloc != nil && alloc.Source == specs.MachineSetSpec_MachineAllocation_MachineClass && res.Metadata().ID() == alloc.Name {
+				if alloc := omni.GetMachineAllocation(r); alloc != nil && res.Metadata().ID() == alloc.Name {
 					inUseBy = append(inUseBy, r.Metadata().ID())
 				}
 			})

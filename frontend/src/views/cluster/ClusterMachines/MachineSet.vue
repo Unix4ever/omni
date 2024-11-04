@@ -144,7 +144,7 @@ machinesWatch.setup(computed(() => {
 }));
 
 requestsWatch.setup(computed(() => {
-  if (!machineSet.value.spec.machine_allocation) {
+  if (!machineSet.value.spec.machine_allocation && !machineSet.value.spec.managed) {
     return;
   }
 

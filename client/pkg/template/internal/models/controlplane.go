@@ -5,6 +5,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -19,6 +20,12 @@ const KindControlPlane = "ControlPlane"
 // ControlPlane describes Cluster controlplane nodes.
 type ControlPlane struct {
 	MachineSet `yaml:",inline"`
+	Managed    Managed `yaml:"managed,omitempty"`
+}
+
+// Managed describes managed control planes mode.
+type Managed struct {
+	Enable bool `yaml:"enable"`
 }
 
 // Validate the model.
@@ -27,6 +34,20 @@ func (controlplane *ControlPlane) Validate() error {
 
 	if controlplane.Name != "" {
 		multiErr = multierror.Append(multiErr, fmt.Errorf("custom name is not allowed in the controlplane"))
+	}
+
+	if controlplane.Managed.Enable {
+		if controlplane.MachineClass != nil {
+			multiErr = multierror.Append(multiErr, errors.New("setting machine class is not allowed in managed mode"))
+		}
+
+		if controlplane.Machines != nil {
+			multiErr = multierror.Append(multiErr, errors.New("setting machines is not allowed in managed mode"))
+		}
+
+		if controlplane.SystemExtensions.SystemExtensions != nil {
+			multiErr = multierror.Append(multiErr, errors.New("setting system extensions is not allowed in managed mode"))
+		}
 	}
 
 	if controlplane.BootstrapSpec != nil {
@@ -58,7 +79,7 @@ func (controlplane *ControlPlane) Validate() error {
 
 // Translate the model.
 func (controlplane *ControlPlane) Translate(ctx TranslateContext) ([]resource.Resource, error) {
-	return controlplane.translate(ctx, omni.ControlPlanesIDSuffix, omni.LabelControlPlaneRole)
+	return controlplane.translate(ctx, omni.ControlPlanesIDSuffix, omni.LabelControlPlaneRole, controlplane.Managed)
 }
 
 func init() {

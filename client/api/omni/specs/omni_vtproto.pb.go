@@ -1152,7 +1152,6 @@ func (m *MachineSetSpec_MachineAllocation) CloneVT() *MachineSetSpec_MachineAllo
 	r.Name = m.Name
 	r.MachineCount = m.MachineCount
 	r.AllocationType = m.AllocationType
-	r.Source = m.Source
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1161,6 +1160,23 @@ func (m *MachineSetSpec_MachineAllocation) CloneVT() *MachineSetSpec_MachineAllo
 }
 
 func (m *MachineSetSpec_MachineAllocation) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *MachineSetSpec_Managed) CloneVT() *MachineSetSpec_Managed {
+	if m == nil {
+		return (*MachineSetSpec_Managed)(nil)
+	}
+	r := new(MachineSetSpec_Managed)
+	r.Enable = m.Enable
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineSetSpec_Managed) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -1228,6 +1244,7 @@ func (m *MachineSetSpec) CloneVT() *MachineSetSpec {
 	r.UpdateStrategyConfig = m.UpdateStrategyConfig.CloneVT()
 	r.DeleteStrategyConfig = m.DeleteStrategyConfig.CloneVT()
 	r.MachineAllocation = m.MachineAllocation.CloneVT()
+	r.Managed = m.Managed.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1278,6 +1295,7 @@ func (m *MachineSetStatusSpec) CloneVT() *MachineSetStatusSpec {
 	r.ConfigHash = m.ConfigHash
 	r.MachineAllocation = m.MachineAllocation.CloneVT()
 	r.LockedUpdates = m.LockedUpdates
+	r.Managed = m.Managed
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3917,14 +3935,30 @@ func (this *MachineSetSpec_MachineAllocation) EqualVT(that *MachineSetSpec_Machi
 	if this.AllocationType != that.AllocationType {
 		return false
 	}
-	if this.Source != that.Source {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *MachineSetSpec_MachineAllocation) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*MachineSetSpec_MachineAllocation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *MachineSetSpec_Managed) EqualVT(that *MachineSetSpec_Managed) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Enable != that.Enable {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineSetSpec_Managed) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineSetSpec_Managed)
 	if !ok {
 		return false
 	}
@@ -4017,6 +4051,9 @@ func (this *MachineSetSpec) EqualVT(that *MachineSetSpec) bool {
 	if !this.MachineAllocation.EqualVT(that.MachineAllocation) {
 		return false
 	}
+	if !this.Managed.EqualVT(that.Managed) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4095,6 +4132,9 @@ func (this *MachineSetStatusSpec) EqualVT(that *MachineSetStatusSpec) bool {
 		return false
 	}
 	if this.LockedUpdates != that.LockedUpdates {
+		return false
+	}
+	if this.Managed != that.Managed {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8761,11 +8801,6 @@ func (m *MachineSetSpec_MachineAllocation) MarshalToSizedBufferVT(dAtA []byte) (
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.Source != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Source))
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.AllocationType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AllocationType))
 		i--
@@ -8782,6 +8817,49 @@ func (m *MachineSetSpec_MachineAllocation) MarshalToSizedBufferVT(dAtA []byte) (
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Name)))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MachineSetSpec_Managed) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineSetSpec_Managed) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineSetSpec_Managed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Enable {
+		i--
+		if m.Enable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -8943,6 +9021,16 @@ func (m *MachineSetSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Managed != nil {
+		size, err := m.Managed.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
 	}
 	if m.MachineAllocation != nil {
 		size, err := m.MachineAllocation.MarshalToSizedBufferVT(dAtA[:i])
@@ -9118,6 +9206,16 @@ func (m *MachineSetStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Managed {
+		i--
+		if m.Managed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.LockedUpdates != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.LockedUpdates))
@@ -13090,8 +13188,18 @@ func (m *MachineSetSpec_MachineAllocation) SizeVT() (n int) {
 	if m.AllocationType != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.AllocationType))
 	}
-	if m.Source != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.Source))
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MachineSetSpec_Managed) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Enable {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -13174,6 +13282,10 @@ func (m *MachineSetSpec) SizeVT() (n int) {
 		l = m.MachineAllocation.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Managed != nil {
+		l = m.Managed.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -13247,6 +13359,9 @@ func (m *MachineSetStatusSpec) SizeVT() (n int) {
 	}
 	if m.LockedUpdates != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.LockedUpdates))
+	}
+	if m.Managed {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -22546,11 +22661,62 @@ func (m *MachineSetSpec_MachineAllocation) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
 			}
-			m.Source = 0
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachineSetSpec_Managed) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineSetSpec_Managed: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineSetSpec_Managed: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enable", wireType)
+			}
+			var v int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -22560,11 +22726,12 @@ func (m *MachineSetSpec_MachineAllocation) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Source |= MachineSetSpec_MachineAllocation_Source(b&0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			m.Enable = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -23106,6 +23273,42 @@ func (m *MachineSetSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Managed", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Managed == nil {
+				m.Managed = &MachineSetSpec_Managed{}
+			}
+			if err := m.Managed.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -23613,6 +23816,26 @@ func (m *MachineSetStatusSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Managed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Managed = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

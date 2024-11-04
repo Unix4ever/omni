@@ -689,22 +689,18 @@ message MachineSetSpec {
       Unlimited = 1;
     }
 
-    enum Source {
-      // MachineClass allocates the machines from a machine class.
-      MachineClass = 0;
-      // MachineRequestSet allocates the machines from a machine request set.
-      MachineRequestSet = 1;
-    }
-
     // Name defines the machine class/machine request set id to select the machines from.
     string name = 1;
     // MachineCount defines fixed amount of the machines to allocated from the machine class/request set.
     uint32 machine_count = 2;
     // AllocationType defines special constants for the amount of machines to be allocated.
     Type allocation_type = 3;
-    // Source defines the source where to get the machines from.
-    // It can be either a machine class or a machine request set.
-    Source source = 4;
+    reserved 4;
+  }
+
+  message Managed {
+    // Enable management control plane operation mode.
+    bool enable = 1;
   }
 
   // BootstrapSpec defines the bootstrap spec for the control plane machine set.
@@ -760,6 +756,9 @@ message MachineSetSpec {
 
   // MachineAllocation rule to pick machines for the machine set.
   MachineAllocation machine_allocation = 7;
+
+  // Managed control plane mode.
+  Managed managed = 8;
 }
 
 // TalosUpgradeStatusSpec contains the status of the Talos upgrade process.
@@ -807,6 +806,8 @@ message MachineSetStatusSpec {
   MachineSetSpec.MachineAllocation machine_allocation = 6;
   // LockedUpdates is the number of machines which have pending config update but are locked.
   uint32 locked_updates = 7;
+  // Managed means that control planes are running in managed mode.
+  bool managed = 8;
 }
 
 // MachineSetNodeSpec is a binding between ClusterMachine and MachineSet.

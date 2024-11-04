@@ -38,8 +38,8 @@ func RelationLabelsValidationOptions() []validated.StateOption {
 	return relationLabelsValidationOptions()
 }
 
-func MachineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Factory) []validated.StateOption {
-	return machineSetValidationOptions(st, etcdBackupStoreFactory)
+func MachineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Factory, managedControlPlanesEnabled bool) []validated.StateOption {
+	return machineSetValidationOptions(st, etcdBackupStoreFactory, managedControlPlanesEnabled)
 }
 
 func MachineSetNodeValidationOptions(st state.State) []validated.StateOption {

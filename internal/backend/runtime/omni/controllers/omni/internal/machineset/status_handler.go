@@ -52,6 +52,8 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 
 	spec.Machines.Requested = uint32(len(machineSetNodes))
 
+	spec.Managed = rc.GetMachineSet().TypedSpec().Value.Managed != nil && rc.GetMachineSet().TypedSpec().Value.Managed.Enable
+
 	// requested machines is max(manuallyAllocatedMachines, machineClassMachineCount)
 	// if machine class allocation type is not static it falls back to the actual machineSetNodes count
 	// then we first compare number of machine set nodes against the number of requested machines
@@ -76,7 +78,7 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 
 	_, isControlPlane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 
-	if isControlPlane && len(machineSetNodes) == 0 && spec.Machines.Requested == 0 {
+	if isControlPlane && len(machineSetNodes) == 0 && spec.Machines.Requested == 0 && !spec.Managed {
 		spec.Phase = specs.MachineSetPhase_Failed
 		spec.Error = "control plane machine set must have at least one node"
 	}

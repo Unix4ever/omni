@@ -165,7 +165,9 @@ func (machineset *MachineSet) Validate() error {
 }
 
 // Translate the model.
-func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLabel string) ([]resource.Resource, error) {
+//
+//nolint:gocognit
+func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLabel string, managed Managed) ([]resource.Resource, error) {
 	id := omni.AdditionalWorkersResourceID(ctx.ClusterName, nameSuffix)
 
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, id)
@@ -176,64 +178,79 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 
 	machineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling // Update strategy is Rolling when not specified.
 
-	if machineset.UpdateStrategy != nil {
-		if machineset.UpdateStrategy.Type != nil {
-			machineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_UpdateStrategy(*machineset.UpdateStrategy.Type)
-		}
-
-		if machineset.UpdateStrategy.Rolling != nil {
-			machineSet.TypedSpec().Value.UpdateStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
-				Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
-					MaxParallelism: machineset.UpdateStrategy.Rolling.MaxParallelism,
-				},
-			}
-		}
-	}
-
-	if machineset.DeleteStrategy != nil {
-		if machineset.DeleteStrategy.Type != nil {
-			machineSet.TypedSpec().Value.DeleteStrategy = specs.MachineSetSpec_UpdateStrategy(*machineset.DeleteStrategy.Type)
-		}
-
-		if machineset.DeleteStrategy.Rolling != nil {
-			machineSet.TypedSpec().Value.DeleteStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
-				Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
-					MaxParallelism: machineset.DeleteStrategy.Rolling.MaxParallelism,
-				},
-			}
+	if managed.Enable {
+		machineSet.TypedSpec().Value.Managed = &specs.MachineSetSpec_Managed{
+			Enable: managed.Enable,
 		}
 	}
 
 	resourceList := []resource.Resource{machineSet}
 
-	if machineset.BootstrapSpec != nil {
-		machineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
-			ClusterUuid: machineset.BootstrapSpec.ClusterUUID,
-			Snapshot:    machineset.BootstrapSpec.Snapshot,
-		}
-	}
+	var schematicConfigurations []resource.Resource
 
-	if machineset.MachineClass != nil {
-		machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
-			Name:           machineset.MachineClass.Name,
-			MachineCount:   machineset.MachineClass.Size.Value,
-			AllocationType: machineset.MachineClass.Size.AllocationType,
-			Source:         specs.MachineSetSpec_MachineAllocation_MachineClass,
-		}
-	} else {
-		for _, machineID := range machineset.Machines {
-			machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, string(machineID), machineSet)
-			descriptors := ctx.MachineDescriptors[machineID]
-
-			descriptors.Apply(machineSetNode)
-
-			_, locked := ctx.LockedMachines[machineID]
-			if locked {
-				machineSetNode.Metadata().Annotations().Set(omni.MachineLocked, "")
+	if !managed.Enable {
+		if machineset.UpdateStrategy != nil {
+			if machineset.UpdateStrategy.Type != nil {
+				machineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_UpdateStrategy(*machineset.UpdateStrategy.Type)
 			}
 
-			resourceList = append(resourceList, machineSetNode)
+			if machineset.UpdateStrategy.Rolling != nil {
+				machineSet.TypedSpec().Value.UpdateStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
+					Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
+						MaxParallelism: machineset.UpdateStrategy.Rolling.MaxParallelism,
+					},
+				}
+			}
 		}
+
+		if machineset.DeleteStrategy != nil && !managed.Enable {
+			if machineset.DeleteStrategy.Type != nil {
+				machineSet.TypedSpec().Value.DeleteStrategy = specs.MachineSetSpec_UpdateStrategy(*machineset.DeleteStrategy.Type)
+			}
+
+			if machineset.DeleteStrategy.Rolling != nil {
+				machineSet.TypedSpec().Value.DeleteStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
+					Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
+						MaxParallelism: machineset.DeleteStrategy.Rolling.MaxParallelism,
+					},
+				}
+			}
+		}
+
+		if machineset.BootstrapSpec != nil && !managed.Enable {
+			machineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
+				ClusterUuid: machineset.BootstrapSpec.ClusterUUID,
+				Snapshot:    machineset.BootstrapSpec.Snapshot,
+			}
+		}
+
+		if machineset.MachineClass != nil {
+			machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
+				Name:           machineset.MachineClass.Name,
+				MachineCount:   machineset.MachineClass.Size.Value,
+				AllocationType: machineset.MachineClass.Size.AllocationType,
+			}
+		} else {
+			for _, machineID := range machineset.Machines {
+				machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, string(machineID), machineSet)
+				descriptors := ctx.MachineDescriptors[machineID]
+
+				descriptors.Apply(machineSetNode)
+
+				_, locked := ctx.LockedMachines[machineID]
+				if locked {
+					machineSetNode.Metadata().Annotations().Set(omni.MachineLocked, "")
+				}
+
+				resourceList = append(resourceList, machineSetNode)
+			}
+		}
+
+		schematicConfigurations = machineset.SystemExtensions.translate(
+			ctx,
+			id,
+			pair.MakePair(omni.LabelMachineSet, id),
+		)
 	}
 
 	patches, err := machineset.Patches.Translate(
@@ -247,12 +264,6 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 	}
 
 	resourceList = append(resourceList, patches...)
-
-	schematicConfigurations := machineset.SystemExtensions.translate(
-		ctx,
-		id,
-		pair.MakePair(omni.LabelMachineSet, id),
-	)
 
 	return append(resourceList, schematicConfigurations...), nil
 }

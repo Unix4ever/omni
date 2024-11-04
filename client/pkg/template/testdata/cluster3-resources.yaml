@@ -54,6 +54,7 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    managed: null
 ---
 metadata:
     namespace: default
@@ -90,6 +91,7 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    managed: null
 ---
 metadata:
     namespace: default
@@ -162,6 +164,7 @@ spec:
         rolling:
             maxparallelism: 5
     machineallocation: null
+    managed: null
 ---
 metadata:
     namespace: default
@@ -239,6 +242,7 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    managed: null
 ---
 metadata:
     namespace: default
@@ -278,7 +282,7 @@ spec:
         name: test
         machinecount: 1
         allocationtype: 0
-        source: 0
+    managed: null
 ---
 metadata:
     namespace: default
@@ -303,4 +307,4 @@ spec:
         name: test
         machinecount: 0
         allocationtype: 1
-        source: 0
+    managed: null

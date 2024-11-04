@@ -70,6 +70,12 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 		if _, isControlPlane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); isControlPlane {
 			controlPlaneMachineSetModel = models.ControlPlane{MachineSet: machineSetModel}
 
+			if machineSet.TypedSpec().Value.Managed != nil {
+				controlPlaneMachineSetModel.Managed = models.Managed{
+					Enable: machineSet.TypedSpec().Value.Managed.Enable,
+				}
+			}
+
 			continue
 		}
 
@@ -245,11 +251,6 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 				Value:          allocationConfig.GetMachineCount(),
 				AllocationType: allocationConfig.GetAllocationType(),
 			},
-		}
-
-		// TODO: for MCP we'll have a special flag defined, should support machine request set allocation mode export after we implement it
-		if allocationConfig.Source != specs.MachineSetSpec_MachineAllocation_MachineClass {
-			return models.MachineSet{}, fmt.Errorf("unsupported machine allocation source in the machine set %s", machineSet.Metadata().ID())
 		}
 	} else {
 		machineIDs = xslices.Map(nodes, func(node *omni.MachineSetNode) models.MachineID {

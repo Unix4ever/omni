@@ -52,7 +52,7 @@ func (workers *Workers) Translate(ctx TranslateContext) ([]resource.Resource, er
 		nameSuffix = workers.Name
 	}
 
-	return workers.translate(ctx, nameSuffix, omni.LabelWorkerRole)
+	return workers.translate(ctx, nameSuffix, omni.LabelWorkerRole, Managed{})
 }
 
 func init() {

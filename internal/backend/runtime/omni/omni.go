@@ -257,6 +257,17 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewMachineTeardownController(),
 	}
 
+	if config.Config.ManagedControlPlanes.Enable {
+		qcontrollers = append(qcontrollers,
+			omnictrl.NewManagedControlPlaneController(
+				omnictrl.ProviderConfig{
+					ID:   config.Config.ManagedControlPlanes.ProviderID,
+					Data: config.Config.ManagedControlPlanes.ProviderData,
+				},
+			),
+		)
+	}
+
 	if config.Config.Auth.SAML.Enabled {
 		controllers = append(controllers,
 			&omnictrl.SAMLAssertionController{},
@@ -311,7 +322,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		authorizationValidationOptions(resourceState),
 		roleValidationOptions(),
 		machineSetNodeValidationOptions(resourceState),
-		machineSetValidationOptions(resourceState, storeFactory),
+		machineSetValidationOptions(resourceState, storeFactory, config.Config.ManagedControlPlanes.Enable),
 		machineClassValidationOptions(resourceState),
 		identityValidationOptions(config.Config.Auth.SAML),
 		exposedServiceValidationOptions(),
