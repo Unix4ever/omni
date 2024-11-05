@@ -44,6 +44,12 @@ func (c *Create) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 	helpers.CopyLabels(machineSet, clusterMachineConfigPatches, omni.LabelCluster, omni.LabelWorkerRole, omni.LabelControlPlaneRole)
 	helpers.CopyLabels(machineSet, clusterMachine, omni.LabelCluster, omni.LabelWorkerRole, omni.LabelControlPlaneRole)
 
+	if machineSet.TypedSpec().Value.Managed != nil && machineSet.TypedSpec().Value.Managed.Enable {
+		clusterMachine.Metadata().Labels().Set(omni.LabelManaged, "")
+	} else {
+		clusterMachine.Metadata().Labels().Delete(omni.LabelManaged)
+	}
+
 	clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 	clusterMachineConfigPatches.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 

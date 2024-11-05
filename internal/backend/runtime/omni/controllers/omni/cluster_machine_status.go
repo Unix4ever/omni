@@ -57,6 +57,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					omni.LabelControlPlaneRole,
 					omni.LabelWorkerRole,
 					omni.LabelMachineSet,
+					omni.LabelManaged,
 				)
 
 				_, updateLocked := clusterMachine.Metadata().Labels().Get(omni.UpdateLocked)

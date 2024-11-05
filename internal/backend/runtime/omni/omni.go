@@ -265,6 +265,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 					Data: config.Config.ManagedControlPlanes.ProviderData,
 				},
 			),
+			omnictrl.NewManagedConfigPatchesController(),
 		)
 	}
 
