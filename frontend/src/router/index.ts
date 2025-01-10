@@ -223,23 +223,23 @@ const routes: RouteRecordRaw[] = [
       },
     },
     {
-      path: "/machines/provisioned",
-      name: "MachinesProvisioned",
+      path: "/machines/infra/virtual",
+      name: "MachinesVirtual",
       component: OmniMachines,
       props: {
         filter: MachineFilterOption.Provisioned,
       },
     },
     {
-      path: "/machines/pxe",
-      name: "MachinesPXE",
+      path: "/machines/infra/physical",
+      name: "MachinesPhysical",
       component: OmniMachines,
       props: {
         filter: MachineFilterOption.PXE,
       },
     },
     {
-      path: "/machines/pending",
+      path: "/machines/infra/physical/pending",
       name: "MachinesPending",
       component: OmniMachinesPending,
     },

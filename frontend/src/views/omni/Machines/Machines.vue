@@ -32,7 +32,6 @@ included in the LICENSE file.
           <page-header title="Machines Provisioned by the Infra Providers" v-else-if="filter === MachineFilterOption.Provisioned"/>
           <page-header title="Machines Managed by the Bare Metal Providers" v-else-if="filter === MachineFilterOption.PXE"/>
         </div>
-        <machine-tabs/>
       </template>
       <template #input>
         <labels-input :completions-resource="{
@@ -68,7 +67,6 @@ import { MachineStatusMetricsSpec } from "@/api/omni/specs/omni.pb";
 import StatsItem from "@/components/common/Stats/StatsItem.vue";
 import { MachineFilterOption } from "@/methods/machine";
 import { toRefs } from "vue";
-import MachineTabs from "./MachineTabs.vue";
 
 const props = defineProps<{
   filter?: MachineFilterOption,
