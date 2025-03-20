@@ -14,8 +14,8 @@ FROM ghcr.io/siderolabs/fhs:v1.10.0-alpha.0-37-g359807b AS image-fhs
 # base toolchain image
 FROM --platform=${BUILDPLATFORM} ${JS_TOOLCHAIN} AS js-toolchain
 RUN apk --update --no-cache add bash curl protoc protobuf-dev go
-COPY ./go.mod .
 COPY ./go.sum .
+COPY ./go.mod .
 ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 

@@ -37,8 +37,8 @@
   "devDependencies": {
     "@heroicons/vue": "^2.2.0",
     "@types/luxon": "^3.4.2",
-    "@types/node": "^20.17.24",
     "@types/pluralize": "^0.0.33",
+    "@types/node": "^20.17.24",
     "@vitejs/plugin-vue": "^5.2.3",
     "autoprefixer": "^10.4.21",
     "eslint-plugin-typescript": "^0.14.0",

@@ -97,7 +97,7 @@ func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
 		return newError(
 			specs.ControlPlaneStatusSpec_Condition_Warning,
 			false,
-			"Etcd members count doesn't match quorum, expected odd number, got %d",
+			"Etcd members is equal to the minimum quorum %d. The cluster cannot tolerate the loss of any members.",
 			len(members),
 		)
 	}
