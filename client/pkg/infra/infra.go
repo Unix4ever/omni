@@ -141,7 +141,7 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 
 	rds, err := getResourceDefinitions(ctx, st)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list resource definitions %w", err)
 	}
 
 	if err = runtime.RegisterQController(controllers.NewProvisionController(
@@ -152,7 +152,7 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		options.encodeRequestIDsIntoTokens,
 		rds,
 	)); err != nil {
-		return err
+		return fmt.Errorf("failed to register provision controller %w", err)
 	}
 
 	providerHealthStatusController, err := controllers.NewProviderHealthStatusController(provider.id, controllers.ProviderHealthStatusOptions{
@@ -160,11 +160,11 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		Interval:        options.healthCheckInterval,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create health status controller %w", err)
 	}
 
 	if err = runtime.RegisterController(providerHealthStatusController); err != nil {
-		return err
+		return fmt.Errorf("failed to register health status controller %w", err)
 	}
 
 	providerStatus := infra.NewProviderStatus(provider.id)
@@ -174,20 +174,12 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 	providerStatus.TypedSpec().Value.Description = provider.config.Description
 	providerStatus.TypedSpec().Value.Icon = provider.config.Icon
 
-	err = st.Create(ctx, providerStatus)
-	if err != nil {
-		if !state.IsConflictError(err) {
-			return err
-		}
+	if err = safe.StateModify(ctx, st, providerStatus, func(res *infra.ProviderStatus) error {
+		res.TypedSpec().Value = providerStatus.TypedSpec().Value
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, providerStatus.Metadata(), func(res *infra.ProviderStatus) error {
-			res.TypedSpec().Value = providerStatus.TypedSpec().Value
-
-			return nil
-		})
-		if err != nil {
-			return err
-		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to update provider status %w", err)
 	}
 
 	return runtime.Run(ctx)
