@@ -504,13 +504,29 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 	// if there is no machine state do not call deprovision API
 	machineMD := resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined)
 
-	_, err = r.Get(ctx, machineMD)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
+	res, err := r.Get(ctx, machineMD)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if res == nil {
+		res, err = protobuf.CreateResource(t.ResourceDefinition().Type)
+		if err != nil {
+			return err
 		}
 
-		return err
+		*res.Metadata() = machineMD
+
+		// initialize empty spec
+		if r, ok := res.Spec().(interface {
+			UnmarshalJSON(bytes []byte) error
+		}); ok {
+			if err = r.UnmarshalJSON([]byte("{}")); err != nil {
+				return err
+			}
+		}
+
+		t = res.(T)
 	}
 
 	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
