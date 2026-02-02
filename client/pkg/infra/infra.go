@@ -8,6 +8,7 @@ package infra
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -27,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
+	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 // ProviderConfig defines the schema, human-readable provider name and description.
@@ -100,15 +102,6 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		options.concurrency = 1
 	}
 
-	if options.imageFactory == nil {
-		var err error
-
-		options.imageFactory, err = imagefactory.NewClient(imagefactory.ClientOptions{})
-		if err != nil {
-			return err
-		}
-	}
-
 	options.clientOptions = append(options.clientOptions, client.WithOmniClientOptions(
 		omni.WithProviderID(provider.id),
 	))
@@ -142,6 +135,24 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 	rds, err := getResourceDefinitions(ctx, st)
 	if err != nil {
 		return err
+	}
+
+	features, err := safe.ReaderGetByID[*omnires.FeaturesConfig](ctx, st, omnires.FeaturesConfigID)
+	if err != nil {
+		return err
+	}
+
+	if options.imageFactory == nil {
+		var err error
+
+		log.Printf(">>>>> %s", features.TypedSpec().Value.ImageFactoryBaseUrl)
+
+		options.imageFactory, err = imagefactory.NewClient(imagefactory.ClientOptions{
+			FactoryEndpoint: features.TypedSpec().Value.ImageFactoryBaseUrl,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if err = runtime.RegisterQController(controllers.NewProvisionController(
